@@ -1,0 +1,32 @@
+# build folders
+build/
+build-*/
+cmake-build-*/
+
+# Qt
+*.user
+*.pro.user*
+*.autosave
+*.qmlc
+
+# macOS
+.DS_Store
+*.app
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
