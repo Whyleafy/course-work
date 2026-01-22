@@ -1,4 +1,5 @@
 #include "repositories/ProductRepository.h"
+#include "DecimalUtils.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>
@@ -30,7 +31,7 @@ int ProductRepository::create(const Product &product)
     
     query.bindValue(":name", product.name);
     query.bindValue(":unit", product.unit);
-    query.bindValue(":price", product.price);
+    query.bindValue(":price", decimalToString(product.price));
     query.bindValue(":sort", product.sort);
     query.bindValue(":is_active", product.isActive ? 1 : 0);
     
@@ -130,7 +131,7 @@ bool ProductRepository::update(const Product &product)
     query.bindValue(":id", product.id);
     query.bindValue(":name", product.name);
     query.bindValue(":unit", product.unit);
-    query.bindValue(":price", product.price);
+    query.bindValue(":price", decimalToString(product.price));
     query.bindValue(":sort", product.sort);
     query.bindValue(":is_active", product.isActive ? 1 : 0);
     
@@ -231,7 +232,7 @@ Product ProductRepository::productFromQuery(const QSqlQuery &query) const
     product.id = query.value("id").toInt();
     product.name = query.value("name").toString();
     product.unit = query.value("unit").toString();
-    product.price = query.value("price").toDouble();
+    product.price = decimalFromVariant(query.value("price"));
     product.sort = query.value("sort").toInt();
     product.isActive = query.value("is_active").toInt() == 1;
     product.createdAt = query.value("created_at").toString();
@@ -252,4 +253,3 @@ bool ProductRepository::executeQuery(QSqlQuery &query, const QString &context) c
     
     return true;
 }
-

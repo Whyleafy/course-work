@@ -4,7 +4,6 @@
 #include <QDialog>
 
 class QLineEdit;
-class QDoubleSpinBox;
 class QCheckBox;
 class QPushButton;
 
@@ -33,7 +32,7 @@ private:
 
     QLineEdit* m_nameEdit;
     QLineEdit* m_unitEdit;
-    QDoubleSpinBox* m_priceSpin;
+    QLineEdit* m_priceEdit;
     QCheckBox* m_activeCheck;
 
     QPushButton* m_saveButton;

@@ -1,5 +1,6 @@
 #include "ProductForm.h"
 #include "DbManager.h"
+#include "DecimalUtils.h"
 
 #include <QMessageBox>
 
@@ -8,10 +9,10 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLineEdit>
-#include <QDoubleSpinBox>
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QPushButton>
+#include <QRegularExpressionValidator>
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -43,11 +44,14 @@ void ProductForm::setupUi()
     m_unitEdit->setText("кг");
     form->addRow("Ед. изм.:", m_unitEdit);
 
-    m_priceSpin = new QDoubleSpinBox(this);
-    m_priceSpin->setDecimals(2);
-    m_priceSpin->setMinimum(0.0);
-    m_priceSpin->setMaximum(100000000.0);
-    form->addRow("Цена:", m_priceSpin);
+    m_priceEdit = new QLineEdit(this);
+    m_priceEdit->setPlaceholderText("0.00");
+    auto* priceValidator = new QRegularExpressionValidator(
+        QRegularExpression(R"(^\d+(?:[.,]\d{0,2})?$)"),
+        m_priceEdit
+    );
+    m_priceEdit->setValidator(priceValidator);
+    form->addRow("Цена:", m_priceEdit);
 
 
     m_activeCheck = new QCheckBox("Активен", this);
@@ -78,7 +82,7 @@ void ProductForm::loadData(int productId)
         setWindowTitle("Добавить товар");
         m_nameEdit->clear();
         m_unitEdit->setText("кг");
-        m_priceSpin->setValue(0.0);
+        m_priceEdit->setText(decimalToString(Decimal(0)));
         m_activeCheck->setChecked(true);
         return;
     }
@@ -106,7 +110,7 @@ void ProductForm::loadData(int productId)
 
     m_nameEdit->setText(q.value(0).toString());
     m_unitEdit->setText(q.value(1).toString());
-    m_priceSpin->setValue(q.value(2).toDouble());
+    m_priceEdit->setText(decimalToString(decimalFromVariant(q.value(2))));
     m_activeCheck->setChecked(q.value(3).toInt() == 1);
 }
 
@@ -140,7 +144,7 @@ void ProductForm::onSaveClicked()
 
     const QString name = m_nameEdit->text().trimmed();
     const QString unit = m_unitEdit->text().trimmed();
-    const double price = m_priceSpin->value();
+    const Decimal price = decimalFromString(m_priceEdit->text());
     const int isActive = m_activeCheck->isChecked() ? 1 : 0;
 
     if (!db.transaction()) {
@@ -156,7 +160,7 @@ void ProductForm::onSaveClicked()
         );
         q.bindValue(":name", name);
         q.bindValue(":unit", unit);
-        q.bindValue(":price", price);
+        q.bindValue(":price", decimalToString(price));
         q.bindValue(":active", isActive);
 
 
@@ -180,7 +184,7 @@ void ProductForm::onSaveClicked()
         );
         q.bindValue(":name", name);
         q.bindValue(":unit", unit);
-        q.bindValue(":price", price);
+        q.bindValue(":price", decimalToString(price));
         q.bindValue(":active", isActive);
         q.bindValue(":id", m_productId);
 

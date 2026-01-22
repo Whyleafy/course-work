@@ -1,4 +1,5 @@
 #include "repositories/DocumentRepository.h"
+#include "DecimalUtils.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QLoggingCategory>
@@ -72,7 +73,7 @@ Document DocumentRepository::documentFromQuery(const QSqlQuery& q) const
     d.status = statusFromDb(q.value("status").toString());
     d.senderId = q.value("sender_id").isNull() ? 0 : q.value("sender_id").toInt();
     d.receiverId = q.value("receiver_id").isNull() ? 0 : q.value("receiver_id").toInt();
-    d.totalAmount = q.value("total_amount").toDouble();
+    d.totalAmount = decimalFromVariant(q.value("total_amount"));
     d.notes = q.value("notes").toString();
     d.createdAt = q.value("created_at").toString();
     d.updatedAt = q.value("updated_at").toString();
@@ -97,7 +98,7 @@ int DocumentRepository::create(const Document& document)
     q.bindValue(":status", statusToDb(document.status));
     q.bindValue(":sender", document.senderId == 0 ? QVariant() : QVariant(document.senderId));
     q.bindValue(":receiver", document.receiverId == 0 ? QVariant() : QVariant(document.receiverId));
-    q.bindValue(":total", document.totalAmount);
+    q.bindValue(":total", decimalToString(document.totalAmount));
     q.bindValue(":notes", document.notes.trimmed().isEmpty() ? QVariant() : QVariant(document.notes.trimmed()));
 
     if (!executeQuery(q, "create")) return -1;
@@ -217,7 +218,7 @@ bool DocumentRepository::update(const Document& document)
     q.bindValue(":status", statusToDb(document.status));
     q.bindValue(":sender", document.senderId == 0 ? QVariant() : QVariant(document.senderId));
     q.bindValue(":receiver", document.receiverId == 0 ? QVariant() : QVariant(document.receiverId));
-    q.bindValue(":total", document.totalAmount);
+    q.bindValue(":total", decimalToString(document.totalAmount));
     q.bindValue(":notes", document.notes.trimmed().isEmpty() ? QVariant() : QVariant(document.notes.trimmed()));
 
     if (!executeQuery(q, "update")) return false;

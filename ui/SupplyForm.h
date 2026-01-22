@@ -5,6 +5,8 @@
 #include <QList>
 #include <QString>
 
+#include "DecimalUtils.h"
+
 class QLineEdit;
 class QDateEdit;
 class QComboBox;
@@ -51,7 +53,7 @@ private:
 
     int currentSelectedProductId(int row) const;
     double currentQty(int row) const;
-    double productPriceById(int productId) const;
+    Decimal productPriceById(int productId) const;
     QString productNameById(int productId) const;
 
 private:
@@ -63,7 +65,7 @@ private:
     struct ProductItem {
         int id = 0;
         QString name;
-        double price = 0.0;
+        Decimal price = 0;
         QString unit = "кг";
     };
     QList<ProductItem> m_products;

@@ -5,6 +5,8 @@
 #include <QString>
 #include <QDate>
 
+#include "DecimalUtils.h"
+
 /**
  * @brief Типы документов
  */
@@ -35,7 +37,7 @@ struct Document {
     DocumentStatus status = DocumentStatus::Draft;
     int senderId = 0;
     int receiverId = 0;
-    double totalAmount = 0.0;
+    Decimal totalAmount = 0;
     QString notes;
     QString createdAt;
     QString updatedAt;
@@ -68,4 +70,3 @@ public:
 };
 
 #endif // IDOCUMENTREPOSITORY_H
-

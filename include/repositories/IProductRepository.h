@@ -5,11 +5,13 @@
 #include <QVariant>
 #include <QString>
 
+#include "DecimalUtils.h"
+
 struct Product {
     int id = 0;
     QString name;
     QString unit = "кг";
-    double price = 0.0;
+    Decimal price = 0;
     int sort = 0;
     bool isActive = true;
     QString createdAt;
@@ -41,4 +43,3 @@ public:
 };
 
 #endif // IPRODUCTREPOSITORY_H
-
