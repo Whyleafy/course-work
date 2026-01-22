@@ -177,7 +177,7 @@ bool MigrationRunner::createProductsTable()
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             unit TEXT NOT NULL DEFAULT 'кг',
-            price REAL NOT NULL DEFAULT 0.0,
+            price TEXT NOT NULL DEFAULT '0.00',
             sort INTEGER NOT NULL DEFAULT 0,
             is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -237,7 +237,7 @@ bool MigrationRunner::createDocumentsTable()
             status TEXT NOT NULL DEFAULT 'DRAFT' CHECK(status IN ('DRAFT', 'POSTED', 'CANCELLED')),
             sender_id INTEGER,
             receiver_id INTEGER,
-            total_amount REAL NOT NULL DEFAULT 0.0,
+            total_amount TEXT NOT NULL DEFAULT '0.00',
             notes TEXT,
             is_deleted INTEGER NOT NULL DEFAULT 0 CHECK(is_deleted IN (0, 1)),
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -259,8 +259,8 @@ bool MigrationRunner::createDocumentLinesTable()
             document_id INTEGER NOT NULL,
             product_id INTEGER NOT NULL,
             qty_kg REAL NOT NULL DEFAULT 0.0,
-            price REAL NOT NULL DEFAULT 0.0,
-            line_sum REAL NOT NULL DEFAULT 0.0,
+            price TEXT NOT NULL DEFAULT '0.00',
+            line_sum TEXT NOT NULL DEFAULT '0.00',
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
             FOREIGN KEY (product_id) REFERENCES products(id)
@@ -427,14 +427,14 @@ bool MigrationRunner::loadTestDataInline()
 {
     QStringList statements = {
         R"(INSERT OR IGNORE INTO products (name, unit, price, sort, is_active) VALUES
-('Мука пшеничная высший сорт', 'кг', 45.50, 1, 1),
-('Мука ржаная обойная', 'кг', 38.00, 2, 1),
-('Мука овсяная', 'кг', 52.00, 3, 1),
-('Мука кукурузная', 'кг', 48.50, 4, 1),
-('Отруби пшеничные', 'кг', 15.00, 5, 1),
-('Крупа гречневая ядрица', 'кг', 85.00, 6, 1),
-('Крупа рисовая', 'кг', 65.00, 7, 1),
-('Крупа овсяная', 'кг', 42.00, 8, 1))",
+('Мука пшеничная высший сорт', 'кг', '45.50', 1, 1),
+('Мука ржаная обойная', 'кг', '38.00', 2, 1),
+('Мука овсяная', 'кг', '52.00', 3, 1),
+('Мука кукурузная', 'кг', '48.50', 4, 1),
+('Отруби пшеничные', 'кг', '15.00', 5, 1),
+('Крупа гречневая ядрица', 'кг', '85.00', 6, 1),
+('Крупа рисовая', 'кг', '65.00', 7, 1),
+('Крупа овсяная', 'кг', '42.00', 8, 1))",
 
         R"(INSERT OR IGNORE INTO counterparties (name, type, address, is_active) VALUES
 ('ООО "Хлебзавод №1"', 'customer', 'г. Москва, ул. Хлебная, д. 10', 1),
@@ -451,13 +451,13 @@ bool MigrationRunner::loadTestDataInline()
 (5, '1650123456', '165001001', '049205774', 'ПАО "Тинькофф Банк"', '40702810100000007890', '30101810145250000774'))",
 
         R"(INSERT OR IGNORE INTO documents (doc_type, number, date, status, sender_id, receiver_id, total_amount, notes, is_deleted) VALUES
-('transfer', 'ТТН-001', date('now', '-2 days'), 'POSTED', 2, 1, 45500.00, 'ТТН на поставку муки', 0),
-('transfer', 'ТТН-002', date('now', '-1 days'), 'DRAFT', 3, 1, 23500.00, 'ТТН на поставку круп', 0))",
+('transfer', 'ТТН-001', date('now', '-2 days'), 'POSTED', 2, 1, '45500.00', 'ТТН на поставку муки', 0),
+('transfer', 'ТТН-002', date('now', '-1 days'), 'DRAFT', 3, 1, '23500.00', 'ТТН на поставку круп', 0))",
 
         R"(INSERT OR IGNORE INTO document_lines (document_id, product_id, qty_kg, price, line_sum) VALUES
-(1, 1, 1000.0, 45.50, 45500.00),
-(2, 6, 500.0, 85.00, 42500.00),
-(2, 7, 300.0, 65.00, 19500.00))"
+(1, 1, 1000.0, '45.50', '45500.00'),
+(2, 6, 500.0, '85.00', '42500.00'),
+(2, 7, 300.0, '65.00', '19500.00'))"
     };
 
     for (const QString &statement : statements) {

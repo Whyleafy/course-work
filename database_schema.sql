@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     unit TEXT NOT NULL DEFAULT 'кг',
-    price REAL NOT NULL DEFAULT 0.0,
+    price TEXT NOT NULL DEFAULT '0.00',
     sort INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS documents (
     status TEXT NOT NULL DEFAULT 'DRAFT' CHECK(status IN ('DRAFT', 'POSTED', 'CANCELLED')),
     sender_id INTEGER,
     receiver_id INTEGER,
-    total_amount REAL NOT NULL DEFAULT 0.0,
+    total_amount TEXT NOT NULL DEFAULT '0.00',
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -77,8 +77,8 @@ CREATE TABLE IF NOT EXISTS document_lines (
     document_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     qty_kg REAL NOT NULL DEFAULT 0.0,
-    price REAL NOT NULL DEFAULT 0.0,
-    line_sum REAL NOT NULL DEFAULT 0.0,
+    price TEXT NOT NULL DEFAULT '0.00',
+    line_sum TEXT NOT NULL DEFAULT '0.00',
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id)
@@ -126,4 +126,3 @@ CREATE INDEX IF NOT EXISTS idx_counterparties_active ON counterparties(is_active
 -- Индексы для товаров
 CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active);
 CREATE INDEX IF NOT EXISTS idx_products_sort ON products(sort);
-

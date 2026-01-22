@@ -11,6 +11,8 @@
 #include <QString>
 #include <QList>
 
+#include "DecimalUtils.h"
+
 class StockBalancesModel : public QAbstractTableModel
 {
     Q_OBJECT
@@ -33,7 +35,7 @@ private:
         QString productName;
         int isActive = 1;
         QString unit;
-        double price = 0.0;
+        Decimal price = 0;
         double balanceKg = 0.0;
     };
 

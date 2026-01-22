@@ -5,14 +5,14 @@ PRAGMA foreign_keys = ON;
 
 -- --- Products ---
 INSERT OR IGNORE INTO products (name, unit, price, sort, is_active) VALUES
-('Мука пшеничная высший сорт', 'кг', 45.50, 1, 1),
-('Мука ржаная обойная',        'кг', 38.00, 2, 1),
-('Мука овсяная',               'кг', 52.00, 3, 1),
-('Мука кукурузная',            'кг', 48.50, 4, 1),
-('Отруби пшеничные',           'кг', 15.00, 5, 1),
-('Крупа гречневая ядрица',     'кг', 85.00, 6, 1),
-('Крупа рисовая',              'кг', 65.00, 7, 1),
-('Крупа овсяная',              'кг', 42.00, 8, 1);
+('Мука пшеничная высший сорт', 'кг', '45.50', 1, 1),
+('Мука ржаная обойная',        'кг', '38.00', 2, 1),
+('Мука овсяная',               'кг', '52.00', 3, 1),
+('Мука кукурузная',            'кг', '48.50', 4, 1),
+('Отруби пшеничные',           'кг', '15.00', 5, 1),
+('Крупа гречневая ядрица',     'кг', '85.00', 6, 1),
+('Крупа рисовая',              'кг', '65.00', 7, 1),
+('Крупа овсяная',              'кг', '42.00', 8, 1);
 
 -- --- Counterparties ---
 INSERT OR IGNORE INTO counterparties (name, type, address, is_active) VALUES
@@ -54,7 +54,7 @@ SELECT
   'POSTED',
   (SELECT id FROM counterparties WHERE name='ИП Иванов Иван Иванович'),
   (SELECT id FROM counterparties WHERE name='ООО "Хлебзавод №1"'),
-  0.0,
+  '0.00',
   'ТТН на поставку муки';
 
 INSERT OR IGNORE INTO documents (doc_type, number, date, status, sender_id, receiver_id, total_amount, notes)
@@ -65,7 +65,7 @@ SELECT
   'DRAFT',
   (SELECT id FROM counterparties WHERE name='ООО "Торговый дом "Мука""'),
   (SELECT id FROM counterparties WHERE name='ООО "Хлебзавод №1"'),
-  0.0,
+  '0.00',
   'ТТН на поставку круп';
 
 -- --- Document lines ---
@@ -76,20 +76,20 @@ SELECT
   p.id,
   1000.0,
   p.price,
-  1000.0 * p.price
+  printf('%.2f', 1000.0 * p.price)
 FROM documents d
 JOIN products p ON p.name='Мука пшеничная высший сорт'
 WHERE d.doc_type='transfer' AND d.number='ТТН-001';
 
 -- Для DRAFT (ТТН-002): гречка 500, рис 300
 INSERT OR IGNORE INTO document_lines (document_id, product_id, qty_kg, price, line_sum)
-SELECT d.id, p.id, 500.0, p.price, 500.0 * p.price
+SELECT d.id, p.id, 500.0, p.price, printf('%.2f', 500.0 * p.price)
 FROM documents d
 JOIN products p ON p.name='Крупа гречневая ядрица'
 WHERE d.doc_type='transfer' AND d.number='ТТН-002';
 
 INSERT OR IGNORE INTO document_lines (document_id, product_id, qty_kg, price, line_sum)
-SELECT d.id, p.id, 300.0, p.price, 300.0 * p.price
+SELECT d.id, p.id, 300.0, p.price, printf('%.2f', 300.0 * p.price)
 FROM documents d
 JOIN products p ON p.name='Крупа рисовая'
 WHERE d.doc_type='transfer' AND d.number='ТТН-002';
@@ -97,7 +97,7 @@ WHERE d.doc_type='transfer' AND d.number='ТТН-002';
 -- --- Totals ---
 UPDATE documents
 SET total_amount = (
-  SELECT COALESCE(SUM(line_sum),0) FROM document_lines WHERE document_id = documents.id
+  SELECT printf('%.2f', COALESCE(SUM(line_sum),0)) FROM document_lines WHERE document_id = documents.id
 ),
 updated_at = datetime('now')
 WHERE doc_type='transfer' AND number IN ('ТТН-001','ТТН-002');

@@ -4,6 +4,8 @@
 #include <QList>
 #include <QString>
 
+#include "DecimalUtils.h"
+
 /**
  * @brief Структура данных строки документа
  */
@@ -12,8 +14,8 @@ struct DocumentLine {
     int documentId = 0;
     int productId = 0;
     double qtyKg = 0.0;
-    double price = 0.0;
-    double lineSum = 0.0;
+    Decimal price = 0;
+    Decimal lineSum = 0;
     QString createdAt;
     
     bool isValid() const { return id > 0 && documentId > 0 && productId > 0; }
@@ -54,4 +56,3 @@ public:
 };
 
 #endif // IDOCUMENTLINEREPOSITORY_H
-

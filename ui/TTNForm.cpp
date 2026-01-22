@@ -1,5 +1,6 @@
 #include "TTNForm.h"
 #include "DbManager.h"
+#include "DecimalUtils.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -28,9 +29,14 @@ static double toDoubleSafe(const QString& s)
     return ok ? v : 0.0;
 }
 
-static QString money(double v)
+static Decimal toDecimalSafe(const QString& s)
 {
-    return QString::number(v, 'f', 2);
+    return decimalFromString(s);
+}
+
+static QString money(const Decimal& v)
+{
+    return decimalToString(v);
 }
 
 TtnForm::TtnForm(QWidget *parent)
@@ -189,12 +195,12 @@ void TtnForm::onAddLine()
     qtyItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_linesTable->setItem(row, 1, qtyItem);
 
-    double price = 0.0;
+    Decimal price = 0;
     {
         QSqlQuery qp(db);
         qp.prepare("SELECT price FROM products WHERE id = :id");
         qp.bindValue(":id", combo->currentData());
-        if (qp.exec() && qp.next()) price = qp.value(0).toDouble();
+        if (qp.exec() && qp.next()) price = decimalFromVariant(qp.value(0));
     }
     auto* priceItem = new QTableWidgetItem(money(price));
     priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -215,7 +221,7 @@ void TtnForm::onAddLine()
         qp.prepare("SELECT price FROM products WHERE id = :id");
         qp.bindValue(":id", combo->currentData());
         if (qp.exec() && qp.next()) {
-            const double price = qp.value(0).toDouble();
+            const Decimal price = decimalFromVariant(qp.value(0));
             m_linesTable->blockSignals(true);
             m_linesTable->item(row, 2)->setText(money(price));
             m_linesTable->blockSignals(false);
@@ -237,13 +243,13 @@ void TtnForm::onRemoveLine()
 
 void TtnForm::onRecalcTotals()
 {
-    double total = 0.0;
+    Decimal total = 0;
 
     m_linesTable->blockSignals(true);
     for (int r = 0; r < m_linesTable->rowCount(); ++r) {
         const double qty = toDoubleSafe(m_linesTable->item(r, 1)->text());
-        const double price = toDoubleSafe(m_linesTable->item(r, 2)->text());
-        const double sum = qty * price;
+        const Decimal price = toDecimalSafe(m_linesTable->item(r, 2)->text());
+        const Decimal sum = price * Decimal(qty);
         m_linesTable->item(r, 3)->setText(money(sum));
         total += sum;
     }
@@ -351,7 +357,7 @@ void TtnForm::loadData(int docId)
 
             const int productId = q.value(0).toInt();
             const double qty = q.value(1).toDouble();
-            const double price = q.value(2).toDouble();
+            const Decimal price = decimalFromVariant(q.value(2));
 
             auto* combo = new QComboBox(this);
             for (auto& p : products) combo->addItem(p.second, p.first);
@@ -390,7 +396,7 @@ void TtnForm::loadData(int docId)
                 qp.prepare("SELECT price FROM products WHERE id = :id");
                 qp.bindValue(":id", combo->currentData());
                 if (qp.exec() && qp.next()) {
-                    const double price = qp.value(0).toDouble();
+                    const Decimal price = decimalFromVariant(qp.value(0));
                     m_linesTable->blockSignals(true);
                     m_linesTable->item(row, 2)->setText(money(price));
                     m_linesTable->blockSignals(false);
@@ -472,12 +478,13 @@ bool TtnForm::insertDocument(int& outDocId)
 
     QSqlQuery q(db);
     q.prepare("INSERT INTO documents (doc_type, number, date, status, sender_id, receiver_id, total_amount, notes) "
-              "VALUES ('transfer', :number, :date, 'DRAFT', :sender, :receiver, 0.0, :notes)");
+              "VALUES ('transfer', :number, :date, 'DRAFT', :sender, :receiver, :total, :notes)");
 
     q.bindValue(":number", m_numberEdit->text().trimmed());
     q.bindValue(":date", m_dateEdit->date().toString("yyyy-MM-dd"));
     q.bindValue(":sender", m_senderCombo->currentData().toInt());
     q.bindValue(":receiver", m_receiverCombo->currentData().toInt());
+    q.bindValue(":total", decimalToString(Decimal(0)));
     q.bindValue(":notes", m_notesEdit->toPlainText().trimmed());
 
     if (!q.exec()) {
@@ -538,14 +545,14 @@ bool TtnForm::saveLines(int docId)
 
         const int productId = combo->currentData().toInt();
         const double qty = toDoubleSafe(m_linesTable->item(r, 1)->text());
-        const double price = toDoubleSafe(m_linesTable->item(r, 2)->text());
-        const double sum = qty * price;
+        const Decimal price = toDecimalSafe(m_linesTable->item(r, 2)->text());
+        const Decimal sum = price * Decimal(qty);
 
         ins.bindValue(":doc", docId);
         ins.bindValue(":prod", productId);
         ins.bindValue(":qty", qty);
-        ins.bindValue(":price", price);
-        ins.bindValue(":sum", sum);
+        ins.bindValue(":price", decimalToString(price));
+        ins.bindValue(":sum", decimalToString(sum));
 
         if (!ins.exec()) {
             QMessageBox::critical(this, "Ошибка БД", ins.lastError().text());
@@ -569,11 +576,11 @@ bool TtnForm::recalcAndSaveTotal(int docId)
         return false;
     }
 
-    const double total = q.value(0).toDouble();
+    const Decimal total = decimalFromVariant(q.value(0));
 
     QSqlQuery upd(db);
     upd.prepare("UPDATE documents SET total_amount = :t, updated_at=datetime('now') WHERE id = :id");
-    upd.bindValue(":t", total);
+    upd.bindValue(":t", decimalToString(total));
     upd.bindValue(":id", docId);
 
     if (!upd.exec()) {

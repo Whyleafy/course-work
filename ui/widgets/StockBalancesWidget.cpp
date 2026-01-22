@@ -1,6 +1,7 @@
 #include "StockBalancesWidget.h"
 #include "DbManager.h"
 #include "WriteOffForm.h"
+#include "DecimalUtils.h"
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -47,8 +48,8 @@ QVariant StockBalancesModel::data(const QModelIndex &index, int role) const
             case 2: return item.isActive ? "Да" : "Нет";
             case 3: return QString::number(item.balanceKg, 'f', 2);
             case 4: return item.unit;
-            case 5: return QString::number(item.price, 'f', 2);
-            case 6: return QString::number(item.price * item.balanceKg, 'f', 2);
+            case 5: return decimalToString(item.price);
+            case 6: return decimalToString(item.price * Decimal(item.balanceKg));
             default: return {};
         }
     }
@@ -154,7 +155,7 @@ void StockBalancesModel::refresh()
         item.productName = query.value("name").toString();
         item.isActive = query.value("is_active").toInt();
         item.unit = query.value("unit").toString();
-        item.price = query.value("price").toDouble();
+        item.price = decimalFromVariant(query.value("price"));
         item.balanceKg = query.value("balance").toDouble();
         m_data.append(item);
     }
@@ -327,10 +328,11 @@ void StockBalancesWidget::onWriteOffClicked()
         QSqlQuery q(db);
         q.prepare(R"(
             INSERT INTO documents (doc_type, number, date, status, sender_id, receiver_id, total_amount, notes)
-            VALUES ('writeoff', :number, :date, 'POSTED', NULL, NULL, 0, :notes)
+            VALUES ('writeoff', :number, :date, 'POSTED', NULL, NULL, :total, :notes)
         )");
         q.bindValue(":number", number);
         q.bindValue(":date", QDate::currentDate().toString(Qt::ISODate));
+        q.bindValue(":total", decimalToString(Decimal(0)));
         q.bindValue(":notes", reason.trimmed().isEmpty() ? QVariant() : QVariant(reason.trimmed()));
 
         if (!q.exec()) {

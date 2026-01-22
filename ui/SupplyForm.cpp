@@ -2,6 +2,7 @@
 
 #include "DbManager.h"
 #include "DocumentService.h"
+#include "DecimalUtils.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -137,7 +138,7 @@ void SupplyForm::reloadProducts()
         ProductItem p;
         p.id = q.value("id").toInt();
         p.name = q.value("name").toString();
-        p.price = q.value("price").toDouble();
+        p.price = decimalFromVariant(q.value("price"));
         p.unit = q.value("unit").toString();
         m_products.append(p);
     }
@@ -233,7 +234,7 @@ void SupplyForm::loadData(int documentId)
         int idx = m_senderCombo->findData(senderId);
         if (idx >= 0) m_senderCombo->setCurrentIndex(idx);
 
-        m_totalLabel->setText(QString::number(q.value("total_amount").toDouble(), 'f', 2));
+        m_totalLabel->setText(decimalToString(decimalFromVariant(q.value("total_amount"))));
     }
 
     // lines
@@ -255,8 +256,8 @@ void SupplyForm::loadData(int documentId)
             while (q.next()) {
                 const int productId = q.value(0).toInt();
                 const double qty = q.value(1).toDouble();
-                const double price = q.value(2).toDouble();
-                const double sum = q.value(3).toDouble();
+                const Decimal price = decimalFromVariant(q.value(2));
+                const Decimal sum = decimalFromVariant(q.value(3));
                 const QString unit = q.value(4).toString();
 
                 const int r = m_linesTable->rowCount();
@@ -278,8 +279,8 @@ void SupplyForm::loadData(int documentId)
                 m_linesTable->setCellWidget(r, 1, sp);
 
                 // price, sum, unit (readonly items)
-                m_linesTable->setItem(r, 2, new QTableWidgetItem(QString::number(price, 'f', 2)));
-                m_linesTable->setItem(r, 3, new QTableWidgetItem(QString::number(sum, 'f', 2)));
+                m_linesTable->setItem(r, 2, new QTableWidgetItem(decimalToString(price)));
+                m_linesTable->setItem(r, 3, new QTableWidgetItem(decimalToString(sum)));
                 m_linesTable->setItem(r, 4, new QTableWidgetItem(unit));
 
                 for (int c : {2,3,4}) {
@@ -369,11 +370,11 @@ double SupplyForm::currentQty(int row) const
     return 0.0;
 }
 
-double SupplyForm::productPriceById(int productId) const
+Decimal SupplyForm::productPriceById(int productId) const
 {
     for (const auto& p : m_products)
         if (p.id == productId) return p.price;
-    return 0.0;
+    return Decimal(0);
 }
 
 QString SupplyForm::productNameById(int productId) const
@@ -385,14 +386,14 @@ QString SupplyForm::productNameById(int productId) const
 
 void SupplyForm::recalcTotals()
 {
-    double total = 0.0;
+    Decimal total = 0;
 
     for (int r = 0; r < m_linesTable->rowCount(); ++r) {
         const int productId = currentSelectedProductId(r);
         const double qty = currentQty(r);
 
-        const double price = productPriceById(productId);
-        const double sum = price * qty;
+        const Decimal price = productPriceById(productId);
+        const Decimal sum = price * Decimal(qty);
 
         // unit
         QString unit = "кг";
@@ -404,8 +405,8 @@ void SupplyForm::recalcTotals()
         if (!m_linesTable->item(r, 3)) m_linesTable->setItem(r, 3, new QTableWidgetItem());
         if (!m_linesTable->item(r, 4)) m_linesTable->setItem(r, 4, new QTableWidgetItem());
 
-        m_linesTable->item(r, 2)->setText(QString::number(price, 'f', 2));
-        m_linesTable->item(r, 3)->setText(QString::number(sum, 'f', 2));
+        m_linesTable->item(r, 2)->setText(decimalToString(price));
+        m_linesTable->item(r, 3)->setText(decimalToString(sum));
         m_linesTable->item(r, 4)->setText(unit);
 
         for (int c : {2,3,4}) {
@@ -416,7 +417,7 @@ void SupplyForm::recalcTotals()
         total += sum;
     }
 
-    m_totalLabel->setText(QString::number(total, 'f', 2));
+    m_totalLabel->setText(decimalToString(total));
 }
 
 bool SupplyForm::validateForm()
@@ -474,8 +475,8 @@ bool SupplyForm::insertLines(int documentId)
         const double qty = currentQty(r);
         if (qty < 0.000001) continue;
 
-        const double price = productPriceById(productId);
-        const double sum = price * qty;
+        const Decimal price = productPriceById(productId);
+        const Decimal sum = price * Decimal(qty);
 
         QSqlQuery q(db);
         q.prepare(R"(
@@ -485,8 +486,8 @@ bool SupplyForm::insertLines(int documentId)
         q.bindValue(":doc", documentId);
         q.bindValue(":pid", productId);
         q.bindValue(":qty", qty);
-        q.bindValue(":price", price);
-        q.bindValue(":sum", sum);
+        q.bindValue(":price", decimalToString(price));
+        q.bindValue(":sum", decimalToString(sum));
 
         if (!q.exec()) {
             QMessageBox::critical(this, "Ошибка БД", "Не удалось вставить строку:\n" + q.lastError().text());
@@ -504,7 +505,7 @@ bool SupplyForm::createDocument()
     const QString number = safeText(m_numberEdit->text());
     const QString dateIso = m_dateEdit->date().toString(Qt::ISODate);
     const int senderId = m_senderCombo->currentData().toInt();
-    const double total = m_totalLabel->text().toDouble();
+    const Decimal total = decimalFromString(m_totalLabel->text());
 
     QSqlQuery q(db);
     q.prepare(R"(
@@ -514,7 +515,7 @@ bool SupplyForm::createDocument()
     q.bindValue(":number", number);
     q.bindValue(":date", dateIso);
     q.bindValue(":sender", senderId);
-    q.bindValue(":total", total);
+    q.bindValue(":total", decimalToString(total));
 
     if (!q.exec()) {
         QMessageBox::critical(this, "Ошибка БД", "Не удалось создать документ:\n" + q.lastError().text());
@@ -533,7 +534,7 @@ bool SupplyForm::updateDocument()
     const QString number = safeText(m_numberEdit->text());
     const QString dateIso = m_dateEdit->date().toString(Qt::ISODate);
     const int senderId = m_senderCombo->currentData().toInt();
-    const double total = m_totalLabel->text().toDouble();
+    const Decimal total = decimalFromString(m_totalLabel->text());
 
     QSqlQuery q(db);
     q.prepare(R"(
@@ -548,7 +549,7 @@ bool SupplyForm::updateDocument()
     q.bindValue(":number", number);
     q.bindValue(":date", dateIso);
     q.bindValue(":sender", senderId);
-    q.bindValue(":total", total);
+    q.bindValue(":total", decimalToString(total));
     q.bindValue(":id", m_documentId);
 
     if (!q.exec()) {

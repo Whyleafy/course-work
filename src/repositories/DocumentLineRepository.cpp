@@ -1,4 +1,5 @@
 #include "repositories/DocumentLineRepository.h"
+#include "DecimalUtils.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QLoggingCategory>
@@ -30,8 +31,8 @@ DocumentLine DocumentLineRepository::lineFromQuery(const QSqlQuery& q) const
     l.documentId = q.value("document_id").toInt();
     l.productId = q.value("product_id").toInt();
     l.qtyKg = q.value("qty_kg").toDouble();
-    l.price = q.value("price").toDouble();
-    l.lineSum = q.value("line_sum").toDouble();
+    l.price = decimalFromVariant(q.value("price"));
+    l.lineSum = decimalFromVariant(q.value("line_sum"));
     l.createdAt = q.value("created_at").toString();
     return l;
 }
@@ -48,8 +49,8 @@ int DocumentLineRepository::create(const DocumentLine& line)
     q.bindValue(":doc", line.documentId);
     q.bindValue(":prod", line.productId);
     q.bindValue(":qty", line.qtyKg);
-    q.bindValue(":price", line.price);
-    q.bindValue(":sum", line.lineSum);
+    q.bindValue(":price", decimalToString(line.price));
+    q.bindValue(":sum", decimalToString(line.lineSum));
 
     if (!executeQuery(q, "create")) return -1;
 
@@ -123,8 +124,8 @@ bool DocumentLineRepository::update(const DocumentLine& line)
     q.bindValue(":id", line.id);
     q.bindValue(":prod", line.productId);
     q.bindValue(":qty", line.qtyKg);
-    q.bindValue(":price", line.price);
-    q.bindValue(":sum", line.lineSum);
+    q.bindValue(":price", decimalToString(line.price));
+    q.bindValue(":sum", decimalToString(line.lineSum));
 
     if (!executeQuery(q, "update")) return false;
     return q.numRowsAffected() > 0;
